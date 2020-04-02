@@ -1,0 +1,80 @@
+{
+    "source":{
+        "datasource":"impala0",
+        "queryCommand":"SELECT
+                        a.r_stattime,a.app_type AS uiapptype,a.app_sub_type AS uiappid,config.product_number AS susername,
+                        a.uitcpconpkgs + b.uitcpconpkgs AS uitcpconpkgs,
+                        a.uitcpconsuc + b.uitcpconsuc AS uitcpconsuc,
+                        a.tcp_link_time_delay_count + b.tcp_link_time_delay_count AS tcp_link_time_delay_count,
+                        a.tcp_link_time_delay_sum + b.tcp_link_time_delay_sum AS tcp_link_time_delay_sum,
+                        a.tcp_client_time_delay_count + b.tcp_client_time_delay_count AS tcp_client_time_delay_count,
+                        a.tcp_client_time_delay_sum + b.tcp_client_time_delay_sum AS tcp_client_time_delay_sum,
+                        a.tcp_server_time_delay_count + b.tcp_server_time_delay_count AS tcp_server_time_delay_count,
+                        a.tcp_server_time_delay_sum + b.tcp_server_time_delay_sum AS tcp_server_time_delay_sum,
+                        b.http_response_time_delay_count,
+                        b.http_response_time_delay_sum,
+                        a.outlet AS supplier_id,
+                        a.uiupflow + b.uiupflow AS uiupflow,
+                        a.uidownflow +b.uidownflow AS uidownflow
+                        from
+                        (select cast(cast(statistical_start_time AS BIGINT)/86400 AS BIGINT )*86400 AS r_stattime,app_type,app_sub_type,user_account,outlet,
+                        sum(ISNULL(tcp_link_count,0)) AS uitcpconpkgs,
+                        sum(ISNULL(tcp_link_success_count,0)) AS uitcpconsuc,
+                        sum(ISNULL(tcp_link_time_delay_count,0)) AS tcp_link_time_delay_count,
+                        sum(ISNULL(tcp_link_time_delay_sum,0)) AS tcp_link_time_delay_sum,
+                        sum(ISNULL(tcp_client_time_delay_count,0)) AS tcp_client_time_delay_count,
+                        sum(ISNULL(tcp_client_time_delay_sum,0)) AS tcp_client_time_delay_sum,
+                        sum(ISNULL(tcp_server_time_delay_count,0)) AS tcp_server_time_delay_count,
+                        sum(ISNULL(tcp_server_time_delay_sum,0)) AS tcp_server_time_delay_sum,
+                        sum(ISNULL(ul_ip_len,0)) AS uiupflow,
+                        sum(ISNULL(dl_ip_len,0)) AS uidownflow
+                        from gemstack.wb_standard_kpi_15m_uid_app_direct where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3,4,5) a,
+                        (select cast(cast(statistical_start_time AS BIGINT)/86400 AS BIGINT )*86400 AS r_stattime,app_type,app_sub_type,user_account,outlet,
+                        sum(ISNULL(http_response_time_delay_count,0)) AS http_response_time_delay_count,
+                        sum(ISNULL(http_response_time_delay_sum,0)) AS http_response_time_delay_sum,
+                        sum(ISNULL(tcp_link_count,0)) AS uitcpconpkgs,
+                        sum(ISNULL(tcp_link_success_count,0)) AS uitcpconsuc,
+                        sum(ISNULL(tcp_link_time_delay_count,0)) AS tcp_link_time_delay_count,
+                        sum(ISNULL(tcp_link_time_delay_sum,0)) AS tcp_link_time_delay_sum,
+                        sum(ISNULL(tcp_client_time_delay_count,0)) AS tcp_client_time_delay_count,
+                        sum(ISNULL(tcp_client_time_delay_sum,0)) AS tcp_client_time_delay_sum,
+                        sum(ISNULL(tcp_server_time_delay_count,0)) AS tcp_server_time_delay_count,
+                        sum(ISNULL(tcp_server_time_delay_sum,0)) AS tcp_server_time_delay_sum,
+                        sum(ISNULL(ul_ip_len,0)) AS uiupflow,
+                        sum(ISNULL(dl_ip_len,0)) AS uidownflow
+                        from gemstack.wb_http_kpi_15m_uid_app_direct where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3,4,5) b,
+                        (select user_ip,product_number from gemstack.gemstack_fix_line_configs group by 1,2) config
+                        where a.user_account=config.user_ip AND a.r_stattime=b.r_stattime
+                        AND a.app_type=b.app_type AND a.app_sub_type=b.app_sub_type AND a.user_account=b.user_account AND a.outlet=b.outlet",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"1440"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"60"
+            },
+            "delay":"45",
+            "timeslot":"1440"
+        }
+    },
+    "dest":[
+	    {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSysHRDSupplier",
+                    "filename":"isp_%startTime:yyyyMMdd%_d",
+                    "finishedFilename":"isp_%startTime:yyyyMMdd%_d",
+                    "compressor":""
+                }
+            ]
+        }
+    ]
+}

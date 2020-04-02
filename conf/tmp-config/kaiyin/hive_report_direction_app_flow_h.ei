@@ -1,0 +1,56 @@
+{
+    "source":{
+        "datasource":"impala0",
+        "queryCommand":"SELECT a.r_stattime, a.user_type AS statistype, config.product_number AS susername,
+                        a.ulupflow,a.uldownflow,a.uitcpconpkgs,a.uitcpconsuc,a.uitcpdatapkgs,a.uitcprecon,a.uihandshakedelay,a.uiclientdelay,a.uiserverdelay,b.uihttpdelay
+                        from
+                        (select cast(cast(statistical_start_time AS BIGINT)/3600 AS BIGINT )*3600 AS r_stattime,
+                        user_type,user_account,
+                        sum(ISNULL(ul_ip_len,0)) AS ulupflow,
+                        sum(ISNULL(dl_ip_len,0)) AS uldownflow,
+                        sum(ISNULL(tcp_link_count,0)) AS uitcpconpkgs,
+                        sum(ISNULL(tcp_link_success_count,0)) AS uitcpconsuc,
+                        sum(ISNULL(tcp_ul_packet_count,0)) + sum(ISNULL(tcp_dl_packet_count,0)) AS uitcpdatapkgs,
+                        sum(ISNULL(tcp_ul_retrans_count,0)) + sum(ISNULL(tcp_dl_retrans_count,0)) AS uitcprecon,
+                        (case when sum(ISNULL(tcp_link_time_delay_count,0))!=0 then sum(ISNULL(tcp_link_time_delay_sum,0))/sum(ISNULL(tcp_link_time_delay_count,0)) else 0 END) AS uihandshakedelay,
+                        (case when sum(ISNULL(tcp_client_time_delay_count,0))!=0 then sum(ISNULL(tcp_client_time_delay_sum,0))/sum(ISNULL(tcp_client_time_delay_count,0)) else 0 END) AS uiclientdelay,
+                        (case when sum(ISNULL(tcp_server_time_delay_count,0))!=0 then sum(ISNULL(tcp_server_time_delay_sum,0))/sum(ISNULL(tcp_server_time_delay_count,0)) else 0 END) AS uiserverdelay
+                        from gemstack.wb_standard_kpi_15m_uid_app_direct where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3)a,
+                        (select cast(cast(statistical_start_time AS BIGINT)/3600 AS BIGINT )*3600 AS r_stattime,
+                        user_type,user_account,
+                        (case when sum(ISNULL(http_response_time_delay_count,0))!=0 then sum(ISNULL(http_response_time_delay_sum,0))/sum(ISNULL(http_response_time_delay_count,0)) else 0 END) AS uihttpdelay
+                        from gemstack.wb_http_kpi_15m_uid_app_direct where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3) b,
+                        gemstack.gemstack_fix_line_configs config
+                        where a.user_account=config.user_ip AND a.r_stattime=b.r_stattime AND a.user_account=b.user_account",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"60"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"60"
+            },
+            "delay":"45",
+            "timeslot":"60"
+        }
+    },
+    "dest":[
+	    {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSysKaiYinHome",
+                    "filename":"appflow_%startTime:yyyyMMddHH%_%endTime:yyyyMMddHH%_h",
+                    "finishedFilename":"appflow_%startTime:yyyyMMddHH%_%endTime:yyyyMMddHH%_h",
+                    "compressor":""
+                }
+            ]
+        }
+    ]
+}

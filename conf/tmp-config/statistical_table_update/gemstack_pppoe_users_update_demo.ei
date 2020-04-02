@@ -1,0 +1,54 @@
+{
+    "source":{
+        "datasource":"impala0",
+        "queryCommand":"SELECT id,city,area,town FROM gemstack.gemstack_pppoe_users where ? != ?",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"1440"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"1440"
+            },
+            "delay":"45",
+            "timeslot":"1440"
+        }
+    },
+    "dest":[
+        {
+            "type":"postgres",
+            "datasource":"postgres0",
+            "actions":[
+                {
+                    "initSqlCommand":"delete from gemstack_pppoe_test",
+                    "sqlCommand":"INSERT INTO gemstack_pppoe_test VALUES (?,?,?,?,?,?)",
+                    "columns":[
+                          "id",
+                          "city",
+                          "area",
+                          "town",
+                          "area_id",
+                          "town_id"
+                    ]
+                }
+            ]
+        },
+        {
+             "type":"FileSystem",
+             "actions":[
+                 {
+                     "datasource":"fileSysHivePppoeTestUpdate",
+                     "filename":"gemstack_pppoe_test.txt",
+                     "finishedFilename":"gemstack_pppoe_test",
+                     "compressor":""
+                 }
+             ]
+        }
+    ]
+}

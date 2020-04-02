@@ -1,0 +1,346 @@
+#创建名为gsww的索引，分片数量应调整至于节点数一致。所有字段默认分析器内的分词器为ik_max_work，另外在索引内创建了pinyin分词器和ik_pinyin分析器
+PUT /gsww
+{
+  "settings": {
+   "number_of_shards": 10,
+   "index.mapping.total_fields.limit": 200000,
+   "refresh_interval": "30s",
+   "number_of_replicas":0,
+   "analysis":{
+     "analyzer":{
+       "default":{
+         "tokenizer":"ik_max_word",
+		  "fiter":["synonym_filter"]
+       },
+       "pinyin_analyzer":{
+         "tokenizer":"pinyin_tokenizer"
+       },
+       "ik_pinyin_analyzer":{
+         "type":"custom",
+         "tokenizer":"ik_max_word",
+         "filter":["pinyin_filter"]
+       }
+     },
+     "tokenizer":{
+       "pinyin_tokenizer":{
+         "type":"pinyin",
+         "keep_first_letter":false,
+         "keep_separate_first_letter":false,
+         "keep_full_pinyin":true,
+         "keep_origin":true,
+         "limit_first_letter_length":16,
+         "lowercase":true,
+         "remoe_duplicated_term":true
+       }
+     },
+     "filter":{
+       "pinyin_filter":{
+         "type":"pinyin",
+         "first_letter":"none"
+       },
+	   "synonym_filter": {
+        "type": "synonym",
+        "synonyms_path": "analysis/synonyms.dic"
+      }
+     }
+   }
+  }
+}
+
+#设置字段的映射
+PUT /gsww/gsgairs/_mapping
+{
+  "_all": {
+    "analyzer": "ik_max_word",
+    "search_analyzer": "ik_max_word",
+    "term_vector": "no",
+    "store": "false"
+  },
+  "properties": {
+    "all_wildcard": {
+      "type": "keyword"
+    },
+    "age": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "AJGJDX": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "cardID": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "CBR": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "ccdjrq": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "clhphm": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "clsbdm": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "JJRY": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "JZWMC": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "LAPZR": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "lxdh": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "LXDH": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "MC": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "sjhm": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "YSDWCBR": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "ZXXGR": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "ZYBAR": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "name": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name1": {
+      "type": "text",
+      "copy_to": "all_wildcard",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name2": {
+      "type": "text",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name3": {
+      "type": "text",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name4": {
+      "type": "text",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name5": {
+      "type": "text",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name6": {
+      "type": "text",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name7": {
+      "type": "text",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name8": {
+      "type": "text",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name9": {
+      "type": "text",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    },
+    "name10": {
+      "type": "text",
+      "analyzer": "ik_pinyin_analyzer",
+      "search_analyzer": "ik_pinyin_analyzer",
+      "fields": {
+        "keyword": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

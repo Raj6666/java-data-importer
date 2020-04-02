@@ -1,0 +1,66 @@
+{
+    "source":{
+        "datasource":"postgres1",
+        "queryCommand":"SELECT A .statistical_time AS R_STATTIME, b. NAME AS LINK_NAME, SUM(COALESCE(A .ul_data, 0)) + SUM (COALESCE(A .dl_data, 0)) AS TRAFFIC, ( SUM (COALESCE(A .ul_speed, 0)) + SUM (COALESCE(A .dl_speed, 0))) / 2 AS SPEED FROM gemstack_flow_monitor_link_kpi_15m_statistics A, gemstack_links b WHERE A . LINK = b. LINK AND CAST ( to_char( A .statistical_time + '15 min', 'YYYYMMDDHH24MI' ) AS BIGINT ) > ? AND ? >= CAST ( to_char( A .statistical_time + '15 min', 'YYYYMMDDHH24MI' ) AS BIGINT ) AND CAST ( to_char( A .statistical_time , 'YYYYMMDDHH24MI' ) AS BIGINT ) = ? GROUP BY 1, 2",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"15"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"15"
+            },
+            "delay":"45",
+            "timeslot":"15"
+        }
+    },
+    "dest":[
+	    {
+            "type":"mysql",
+            "datasource":"mysql1",
+            "actions":[
+                {
+                    "sqlCommand":"INSERT INTO q_report_linkflow_min VALUES (?,?,?,?)",
+                    "columns":[
+          			      "R_STATTIME",
+                          "LINK_NAME",
+                          "TRAFFIC",
+                          "SPEED"
+                    ]
+                }
+            ]
+        },
+        {
+            "type":"sqlserver",
+            "datasource":"sqlserver0",
+            "actions":[
+                {
+                    "sqlCommand":"INSERT INTO q_report_linkflow_min VALUES (?,?,?,?)",
+                    "columns":[
+          			      "R_STATTIME",
+                          "LINK_NAME",
+                          "TRAFFIC",
+                          "SPEED"
+                    ]
+                }
+            ]
+        },
+        {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSys2",
+                    "filename":"网调_15_q_report_linkflow_min-%startTime:yyyyMMddHHmm%_%endTime:yyyyMMddHHmm%",
+                    "finishedFilename":"网调_15_q_report_linkflow_min-%startTime:yyyyMMddHHmm%_%endTime:yyyyMMddHHmm%",
+                    "compressor":""
+                }
+            ]
+        }
+    ]
+}

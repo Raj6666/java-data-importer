@@ -1,0 +1,55 @@
+{
+    "source":{
+        "datasource":"impala0",
+        "queryCommand":"SELECT
+                        unix_timestamp(concat(substr(cast(statistical_start_time AS string),1,7),\"-01\"),'yyyy-MM-dd') AS r_stattime,
+                        user_type AS statistype,
+                        config.product_number AS susername,
+                        app_type AS uiapptype,
+                        app_sub_type AS uiappid,
+                        sum(ISNULL(ul_ip_len,0)) AS ulupflow,
+                        sum(ISNULL(dl_ip_len,0)) AS uldownflow,
+                        sum(ISNULL(tcp_link_count,0)) AS uitcpconpkgs,
+                        sum(ISNULL(tcp_link_success_count,0)) AS uitcpconsuc,
+                        sum(ISNULL(tcp_ul_packet_count,0)) + sum(ISNULL(tcp_dl_packet_count,0)) AS uitcpdatapkgs,
+                        sum(ISNULL(tcp_ul_retrans_count,0)) + sum(ISNULL(tcp_dl_retrans_count,0)) AS uitcprecon,
+                        (case when sum(ISNULL(tcp_link_time_delay_count,0))!=0 then sum(ISNULL(tcp_link_time_delay_sum  ,0))/sum(ISNULL(tcp_link_time_delay_count,0)) else 0 END) AS uihandshakedelay,
+                        (case when sum(ISNULL(tcp_client_time_delay_count,0))!=0 then sum(ISNULL(tcp_client_time_delay_sum,0))/sum(ISNULL(tcp_client_time_delay_count,0)) else 0 END) AS uiclientdelay,
+                        (case when sum(ISNULL(tcp_server_time_delay_count,0))!=0 then sum(ISNULL(tcp_server_time_delay_sum,0))/sum(ISNULL(tcp_server_time_delay_count,0)) else 0 END) AS uiserverdelay
+                        from gemstack.wb_standard_kpi_15m_uid_app_direct,gemstack.gemstack_fix_line_configs config
+                        where gemstack.wb_standard_kpi_15m_uid_app_direct.user_account=config.user_ip
+                        AND user_type='5' AND slicetime >= ?
+                        AND ? > slicetime
+                        GROUP BY 1,2,3,4,5",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"60"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"60"
+            },
+            "delay":"45",
+            "timeslot":"60"
+        }
+    },
+    "dest":[
+	    {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSysKaiYinHome",
+                    "filename":"application_%startTime:yyyyMM%_%endTime:yyyyMM%_m",
+                    "finishedFilename":"application_%startTime:yyyyMM%_%endTime:yyyyMM%_m",
+                    "compressor":""
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,64 @@
+{
+    "source":{
+        "datasource":"postgres0",
+        "queryCommand":"SELECT * FROM gemstack_fix_line_configs where ? != ?",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"1440"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"1440"
+            },
+            "delay":"45",
+            "timeslot":"1440"
+        }
+    },
+    "dest":[
+    {
+            "type":"postgres",
+            "datasource":"postgres0",
+            "actions":[
+                {
+                    "initSqlCommand":"delete from gemstack_fix_line_configs_tmp",
+                    "sqlCommand":"INSERT INTO gemstack_fix_line_configs_tmp VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "columns":[
+                          "group_code",
+                          "user_name",
+                          "product_number",
+                          "business_level",
+                          "opening_date",
+                          "onu_name",
+                          "olt_name",
+                          "gateway_ip",
+                          "area",
+                          "town",
+                          "user_ips",
+                          "trans_access",
+                          "bandwidth",
+                          "user_ip",
+                          "onu_id",
+                          "olt_id"
+                    ]
+                }
+            ]
+        },
+	    {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSysHiveFixLineUpdate",
+                    "filename":"gemstack_fix_line_configs_tmp.txt",
+                    "finishedFilename":"gemstack_fix_line_configs_tmp",
+                    "compressor":""
+                }
+            ]
+        }
+    ]
+}

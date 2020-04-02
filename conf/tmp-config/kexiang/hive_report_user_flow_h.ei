@@ -1,0 +1,91 @@
+{
+    "source":{
+        "datasource":"impala0",
+        "queryCommand":"SELECT
+                        a.r_stattime,a.user_type AS statistype,config.product_number AS susername,
+                        a.ulupflow,a.uldownflow,a.uitcpconpkgs,a.uitcpconsucc,a.uitcpdatapkgs,a.uitcprecon,
+                        a.tcp_link_time_delay_count,a.tcp_link_time_delay_sum,a.tcp_client_time_delay_count,a.tcp_client_time_delay_sum,a.tcp_server_time_delay_count,a.tcp_server_time_delay_sum,
+                        b.http_response_time_delay_count,b.http_response_time_delay_sum,b.http_first_byte_delay_count,b.http_first_byte_delay_sum,
+                        a.maxupflow,a.maxdownflow,c.uidnsrequestcount,c.uidnsrespsuccount,b.uigetrequestcount,b.uigetrespsuccount,b.uipostrequestcount,b.uipostrespsuccount,a.uiusertype_id,b.uidownloadtraffic,b.uidownloadflowtime,c.uidnsanalytimes,c.uidnsanalyresptimes,c.uidnsanalysuctimes,
+                        c.dns_time_delay_count,c.dns_time_delay_sum,a.uiuppkgs,a.uidownpkgs,a.uitcpuprecon,a.uitcpdownrecon,a.uitcpconnectsuccount,b.uihttpsessionackcount
+                        from
+                        (select cast(cast(statistical_start_time AS BIGINT)/3600 AS BIGINT )*3600 AS r_stattime,user_type,user_account,
+                        sum(ISNULL(ul_ip_len,0)) AS ulupflow,
+                        sum(ISNULL(dl_ip_len,0)) AS uldownflow,
+                        sum(ISNULL(tcp_link_count,0)) AS uitcpconpkgs,
+                        sum(ISNULL(tcp_link_success_count,0)) AS uitcpconsucc,
+                        sum(ISNULL(tcp_ul_packet_count,0))+ sum(ISNULL(tcp_dl_packet_count,0)) AS uitcpdatapkgs,
+                        sum(ISNULL(tcp_ul_retrans_count,0)) + sum(ISNULL(tcp_dl_retrans_count,0)) AS uitcprecon,
+                        sum(ISNULL(tcp_link_time_delay_count,0)) AS tcp_link_time_delay_count,
+                        sum(ISNULL(tcp_link_time_delay_sum,0)) AS tcp_link_time_delay_sum,
+                        sum(ISNULL(tcp_client_time_delay_count,0)) AS tcp_client_time_delay_count,
+                        sum(ISNULL(tcp_client_time_delay_sum,0)) AS tcp_client_time_delay_sum,
+                        sum(ISNULL(tcp_server_time_delay_count,0)) AS tcp_server_time_delay_count,
+                        sum(ISNULL(tcp_server_time_delay_sum,0)) AS tcp_server_time_delay_sum,
+                        max(ul_ip_len) AS maxupflow,
+                        max(dl_ip_len) AS maxdownflow,
+                        user_type AS uiusertype_id,
+                        sum(ISNULL(tcp_ul_packet_count,0)) AS uiuppkgs,
+                        sum(ISNULL(tcp_dl_packet_count,0)) AS uidownpkgs,
+                        sum(ISNULL(tcp_ul_retrans_count,0)) AS uitcpuprecon,
+                        sum(ISNULL(tcp_dl_retrans_count,0)) AS uitcpdownrecon,
+                        sum(ISNULL(tcp_link_success_count,0)) AS uitcpconnectsuccount
+                        from gemstack.wb_total_kpi_15m_uid_app where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3) a,
+                        (select cast(cast(statistical_start_time AS BIGINT)/3600 AS BIGINT )*3600 AS r_stattime,user_type,user_account,
+                        sum(ISNULL(http_response_time_delay_count,0)) AS http_response_time_delay_count,
+                        sum(ISNULL(http_response_time_delay_sum,0)) AS http_response_time_delay_sum,
+                        sum(ISNULL(http_first_byte_delay_count ,0)) AS http_first_byte_delay_count,
+                        sum(ISNULL(http_first_byte_delay_sum,0)) AS http_first_byte_delay_sum,
+                        sum(ISNULL(http_get_request_count,0)) AS uigetrequestcount,
+                        sum(ISNULL(http_get_success_count,0)) AS uigetrespsuccount,
+                        sum(ISNULL(http_post_request_count,0)) AS uipostrequestcount,
+                        sum(ISNULL(http_post_success_count,0)) AS uipostrespsuccount,
+                        sum(ISNULL(http_500k_ip_len,0)) AS uidownloadtraffic,
+                        sum(ISNULL(http_500k_time_delay,0)) AS uidownloadflowtime,
+                        sum(ISNULL(http_reply_success_count,0)) AS uihttpsessionackcount
+                        from gemstack.wb_http_kpi_15m_uid_app_direct where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3) b,
+                        (select cast(cast(statistical_start_time AS BIGINT)/3600 AS BIGINT )*3600 AS r_stattime,user_type,user_account,
+                        sum(ISNULL(dns_request_count,0)) AS uidnsrequestcount,
+                        sum(ISNULL(dns_response_count,0)) AS uidnsrespsuccount,
+                        sum(ISNULL(dns_request_count,0)) AS uidnsanalytimes,
+                        sum(ISNULL(dns_response_count,0)) AS uidnsanalyresptimes,
+                        sum(ISNULL(dns_success_count,0)) AS uidnsanalysuctimes,
+                        sum(ISNULL(dns_time_delay_count,0)) AS dns_time_delay_count,
+                        sum(ISNULL(dns_time_delay_sum,0)) AS dns_time_delay_sum
+                        from gemstack.wb_dns_kpi_15m_uid_app where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3) c,
+                        (select user_ip,product_number from gemstack.gemstack_fix_line_configs group by 1,2) config
+                        where a.user_account=config.user_ip
+                        AND a.r_stattime=b.r_stattime AND a.r_stattime=c.r_stattime
+                        AND a.user_account=b.user_account AND a.user_account=c.user_account",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"60"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"60"
+            },
+            "delay":"45",
+            "timeslot":"60"
+        }
+    },
+    "dest":[
+	    {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSysHRFUflow",
+                    "filename":"flow_%startTime:yyyyMMddHH%_h",
+                    "finishedFilename":"flow_%startTime:yyyyMMddHH%_h",
+                    "compressor":""
+                }
+            ]
+        }
+    ]
+}

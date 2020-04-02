@@ -1,0 +1,61 @@
+{
+    "source":{
+        "datasource":"impala0",
+        "queryCommand":"SELECT
+                        a.r_stattime AS R_STATTIME,a.province AS Provincecode,a.outlet AS SUPPLIER_ID,config.product_number AS SUSERNAME,a.app_type AS R_APPTYPE,a.app_sub_type AS R_APPID,
+                        a.TRAFFIC_UP,a.TRAFFIC_DN,a.TCPCONNECT_COUNT,a.TCPSUCCESSCONNECT_COUNT,a.SHAKEHANDS_DELAY,a.CLIENT_DELAY,a.SERVER_DELAY,b.HTTP_DELAY
+                        from
+                        (select cast(cast(statistical_start_time AS BIGINT)/3600 AS BIGINT )*3600 AS r_stattime,
+                        province,outlet,user_account,app_type,app_sub_type,
+                        sum(ISNULL(ul_ip_len,0)) AS TRAFFIC_UP,
+                        sum(ISNULL(dl_ip_len,0)) AS TRAFFIC_DN,
+                        sum(ISNULL(tcp_link_count,0)) AS TCPCONNECT_COUNT,
+                        sum(ISNULL(tcp_link_success_count,0)) AS TCPSUCCESSCONNECT_COUNT,
+                        (case when sum(ISNULL(tcp_link_time_delay_count,0))!=0 then sum(ISNULL(tcp_link_time_delay_sum,0))/sum(ISNULL(tcp_link_time_delay_count,0)) else 0 END) AS SHAKEHANDS_DELAY,
+                        (case when sum(ISNULL(tcp_client_time_delay_count,0))!=0 then sum(ISNULL(tcp_client_time_delay_sum,0))/sum(ISNULL(tcp_client_time_delay_count,0)) else 0 END) AS CLIENT_DELAY,
+                        (case when sum(ISNULL(tcp_server_time_delay_count,0))!=0 then sum(ISNULL(tcp_server_time_delay_sum,0))/sum(ISNULL(tcp_server_time_delay_count,0)) else 0 END) AS SERVER_DELAY
+                        from gemstack.wb_standard_kpi_15m_uid_app_direct where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3,4,5,6) a,
+                        (select cast(cast(statistical_start_time AS BIGINT)/3600 AS BIGINT )*3600 AS r_stattime,
+                        province,outlet,user_account,app_type,app_sub_type,
+                        (case when sum(ISNULL(http_response_time_delay_count,0))!=0 then sum(ISNULL(http_response_time_delay_sum,0))/sum(ISNULL(http_response_time_delay_count,0)) else 0 END) AS HTTP_DELAY
+                        from gemstack.wb_http_kpi_15m_uid_app_direct where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3,4,5,6) b,
+                        gemstack.gemstack_fix_line_configs config
+                        where  a.user_account=config.user_ip
+                        AND a.r_stattime=b.r_stattime
+                        AND a.province=b.province
+                        AND a.outlet=b.outlet
+                        AND a.user_account=b.user_account
+                        AND a.app_type=b.app_type
+                        AND a.app_sub_type=b.app_sub_type",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"60"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"60"
+            },
+            "delay":"45",
+            "timeslot":"60"
+        }
+    },
+    "dest":[
+	    {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSysKaiYinHome",
+                    "filename":"province_%startTime:yyyyMMddHH%_%endTime:yyyyMMddHH%_h",
+                    "finishedFilename":"province_%startTime:yyyyMMddHH%_%endTime:yyyyMMddHH%_h",
+                    "compressor":""
+                }
+            ]
+        }
+    ]
+}

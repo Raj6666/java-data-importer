@@ -1,0 +1,37 @@
+{
+    "source":{
+        "datasource":"impala0",
+        "queryCommand":"SELECT a.statistical_time AS '时间', a.user_account AS '专线用户账号', b.ul_ip_len AS '上行流量', b.dl_ip_len AS '下行流量', c.bandwidth AS '带宽' , b.tcp_link_count AS 'Tcp连接次数', b.tcp_link_success_count AS 'Tcp连接成功次数', b.tcp_packet_count AS 'Tcp数据包数', b.tcp_retrans_count AS 'Tcp数据包重传次数', b.tcp_link_time_delay AS '握手时延' , b.tcp_client_time_delay AS '客户端时延', b.tcp_server_time_delay AS '服务端时延', a.http_delay AS 'http时延', a.firstbyte_loadingtime AS '首字节加载时延', a.http_get_request_count AS 'Httpget次数' , a.http_get_success_count AS 'Httpget成功次数', a.http_post_request_count AS 'Httppost次数', a.http_post_success_count AS 'Httppost成功次数' FROM ( SELECT from_unixtime(CAST(CAST(statistical_start_time AS BIGINT) / 3600 AS BIGINT) * 3600, 'yyyy-MM-dd HH:mm:ss') AS 'statistical_time', user_account , CASE  WHEN SUM(ISNULL(http_response_time_delay_count, 0)) != 0 THEN SUM(ISNULL(http_response_time_delay_sum, 0)) / SUM(ISNULL(http_response_time_delay_count, 0)) ELSE 0 END AS 'http_delay' , CASE  WHEN SUM(ISNULL(http_first_byte_delay_count, 0)) != 0 THEN SUM(ISNULL(http_first_byte_delay_sum, 0)) / SUM(ISNULL(http_first_byte_delay_count, 0)) ELSE 0 END AS 'firstbyte_loadingtime', SUM(ISNULL(http_get_request_count, 0)) AS 'http_get_request_count' , SUM(ISNULL(http_get_success_count, 0)) AS 'http_get_success_count' , SUM(ISNULL(http_post_request_count, 0)) AS 'http_post_request_count' , SUM(ISNULL(http_post_success_count, 0)) AS 'http_post_success_count' FROM gemstack.wb_http_kpi_15m_uid_app_direct WHERE slicetime >= ? AND ? > slicetime GROUP BY 1, 2 ) a JOIN ( SELECT from_unixtime(CAST(CAST(statistical_start_time AS BIGINT) / 3600 AS BIGINT) * 3600, 'yyyy-MM-dd HH:mm:ss') AS 'statistical_time', user_account , SUM(ISNULL(ul_ip_len, 0)) AS 'ul_ip_len' , SUM(ISNULL(dl_ip_len, 0)) AS 'dl_ip_len' , SUM(ISNULL(tcp_link_count, 0)) AS 'tcp_link_count' , SUM(ISNULL(tcp_link_success_count, 0)) AS 'tcp_link_success_count' , SUM(ISNULL(tcp_dl_packet_count, 0) + ISNULL(tcp_ul_packet_count, 0)) AS 'tcp_packet_count' , SUM(ISNULL(tcp_dl_retrans_count, 0) + ISNULL(tcp_ul_retrans_count, 0)) AS 'tcp_retrans_count' , CASE  WHEN SUM(ISNULL(tcp_link_time_delay_count, 0)) != 0 THEN SUM(ISNULL(tcp_link_time_delay_sum, 0)) / SUM(ISNULL(tcp_link_time_delay_count, 0)) ELSE 0 END AS 'tcp_link_time_delay' , CASE  WHEN SUM(ISNULL(tcp_client_time_delay_count, 0)) != 0 THEN SUM(ISNULL(tcp_client_time_delay_sum, 0)) / SUM(ISNULL(tcp_client_time_delay_count, 0)) ELSE 0 END AS 'tcp_client_time_delay' , CASE  WHEN SUM(ISNULL(tcp_server_time_delay_count, 0)) != 0 THEN SUM(ISNULL(tcp_server_time_delay_sum, 0)) / SUM(ISNULL(tcp_server_time_delay_count, 0)) ELSE 0 END AS 'tcp_server_time_delay' FROM gemstack.wb_standard_kpi_15m_uid_app_direct WHERE slicetime >= ? AND ? > slicetime GROUP BY 1, 2 ) b JOIN ( SELECT user_ip, bandwidth FROM gemstack.gemstack_fix_line_configs ) c ON a.user_account = b.user_account AND a.user_account = c.user_ip AND a.statistical_time = b.statistical_time",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"60"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"60"
+            },
+            "delay":"45",
+            "timeslot":"60"
+        }
+    },
+    "dest":[
+	    {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSysProvincialCompanyFlow",
+                    "filename":"flow_%startTime:yyyyMMddHH%_h",
+                    "finishedFilename":"flow_%startTime:yyyyMMddHH%_h",
+                    "compressor":"",
+                    "delimiter":"\\001"
+                }
+            ]
+        }
+    ]
+}

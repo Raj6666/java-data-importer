@@ -1,0 +1,85 @@
+{
+    "source":{
+        "datasource":"impala0",
+        "queryCommand":"SELECT
+                        b.r_stattime,b.user_type AS statistype,config.product_number AS susername,b.host AS stopdomainname,
+                        b.ulupflow,b.uldownflow,b.uiclickcount,b.uitcpconpkgs,b.uitcpconsucc,b.uitcpdatapkgs,b.uitcprecon,
+                        b.tcp_link_time_delay_count,b.tcp_link_time_delay_sum,b.tcp_client_time_delay_count,b.tcp_client_time_delay_sum,b.tcp_server_time_delay_count,b.tcp_server_time_delay_sum,
+                        b.http_first_byte_delay_count,b.http_first_byte_delay_sum,b.http_response_time_delay_count,b.http_response_time_delay_sum,b.http_load_time_delay_count,b.http_load_time_delay_sum,
+                        b.uigetrequestcount,b.uigetrespsuccount,b.uipostrequestcount,b.uipostrespsuccount,b.uirespcount,b.uisuccessrespcount,c.dns_time_delay_count,c.dns_time_delay_sum,
+                        c.uidnsanalytimes,c.uidnsanalysuctimes,c.uidnsanalyresptimes,b.uitcpconnectsuccount,b.uihttpsessionackcoun,b.uidownloadtraffic,b.uidownloadflowtime
+                        from
+                        (select cast(cast(statistical_start_time AS BIGINT)/3600 AS BIGINT )*3600 AS r_stattime,user_type,user_account,host,
+                        sum(ISNULL(ul_ip_len,0)) AS ulupflow,
+                        sum(ISNULL(dl_ip_len,0)) AS uldownflow,
+                        sum(ISNULL(uiclickcount,0)) AS uiclickcount,
+                        sum(ISNULL(tcp_link_count,0)) AS uitcpconpkgs,
+                        sum(ISNULL(tcp_link_success_count,0)) AS uitcpconsucc,
+                        sum(ISNULL(tcp_ul_packet_count,0)+ISNULL(tcp_dl_packet_count,0)) AS uitcpdatapkgs,
+                        sum(ISNULL(tcp_ul_retrans_count,0)+ISNULL(tcp_dl_retrans_count,0)) AS uitcprecon,
+                        sum(ISNULL(tcp_link_time_delay_count,0)) AS tcp_link_time_delay_count,
+                        sum(ISNULL(tcp_link_time_delay_sum,0)) AS tcp_link_time_delay_sum,
+                        sum(ISNULL(tcp_client_time_delay_count,0)) AS tcp_client_time_delay_count,
+                        sum(ISNULL(tcp_client_time_delay_sum,0)) AS tcp_client_time_delay_sum,
+                        sum(ISNULL(tcp_server_time_delay_count,0)) AS tcp_server_time_delay_count,
+                        sum(ISNULL(tcp_server_time_delay_sum,0)) AS tcp_server_time_delay_sum,
+                        sum(ISNULL(tcp_link_success_count,0)) AS uitcpconnectsuccount,
+                        sum(ISNULL(http_first_byte_delay_count,0)) AS http_first_byte_delay_count,
+                        sum(ISNULL(http_first_byte_delay_sum,0)) AS http_first_byte_delay_sum,
+                        sum(ISNULL(http_response_time_delay_count,0)) AS http_response_time_delay_count,
+                        sum(ISNULL(http_response_time_delay_sum,0)) AS http_response_time_delay_sum,
+                        sum(ISNULL(http_load_time_delay_count,0)) AS http_load_time_delay_count,
+                        sum(ISNULL(http_load_time_delay_sum,0)) AS http_load_time_delay_sum,
+                        sum(ISNULL(http_get_request_count,0)) AS uigetrequestcount,
+                        sum(ISNULL(http_get_success_count,0)) AS uigetrespsuccount,
+                        sum(ISNULL(http_post_request_count,0)) AS uipostrequestcount,
+                        sum(ISNULL(http_post_success_count,0)) AS uipostrespsuccount,
+                        sum(ISNULL(http_request_count,0)) AS uirespcount,
+                        sum(ISNULL(http_reply_success_count,0)) AS uisuccessrespcount,
+                        sum(ISNULL(http_reply_success_count,0)) AS uihttpsessionackcoun,
+                        sum(ISNULL(http_500k_ip_len,0)) AS uidownloadtraffic,
+                        sum(ISNULL(http_500k_time_delay,0)) AS uidownloadflowtime
+                        from gemstack.wb_http_kpi_15m_uid_host where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3,4) b,
+                        (select cast(cast(statistical_start_time AS BIGINT)/3600 AS BIGINT )*3600 AS r_stattime,user_type,user_account,host,
+                        sum(ISNULL(dns_time_delay_count,0)) AS dns_time_delay_count,
+                        sum(ISNULL(dns_time_delay_sum,0)) AS dns_time_delay_sum,
+                        sum(ISNULL(dns_request_count,0)) AS uidnsanalytimes,
+                        sum(ISNULL(dns_success_count,0)) AS uidnsanalysuctimes,
+                        sum(ISNULL(dns_response_count,0)) AS uidnsanalyresptimes
+                        from gemstack.wb_dns_kpi_15m_uid_host where user_type='5' AND slicetime >= ? AND ? > slicetime GROUP BY 1,2,3,4) c,
+                        (select user_ip,product_number from gemstack.gemstack_fix_line_configs group by 1,2) config
+                        where b.user_account=config.user_ip
+                        AND b.r_stattime=c.r_stattime
+                        AND b.user_account=c.user_account AND b.host=c.host",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"60"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"60"
+            },
+            "delay":"45",
+            "timeslot":"60"
+        }
+    },
+    "dest":[
+	    {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSysHRUWebsite",
+                    "filename":"website_%startTime:yyyyMMddHH%_h",
+                    "finishedFilename":"website_%startTime:yyyyMMddHH%_h",
+                    "compressor":""
+                }
+            ]
+        }
+    ]
+}

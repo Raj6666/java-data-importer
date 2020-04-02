@@ -1,0 +1,64 @@
+{
+    "source":{
+        "datasource":"impala0",
+        "queryCommand":"SELECT from_unixtime(CAST(CAST(statistical_start_time AS BIGINT) / 86400 AS BIGINT) * 86400, 'yyyy-MM-dd') AS 'R_STATTIME' , COUNT(DISTINCT user_account) AS 'R_ONLINECOUNT' , CASE WHEN SUM(ISNULL(ul_ip_len, 0)) + SUM(ISNULL(dl_ip_len, 0)) > 10 * 1024 * 1024 THEN COUNT(DISTINCT user_account) ELSE 0 END AS 'R_ACTIVECOUNT' FROM gemstack.wb_total_kpi_15m_uid_host WHERE slicetime >= ? AND ? > slicetime AND statistical_start_time IS NOT NULL AND user_account IS NOT NULL GROUP BY 1",
+        "firstQueryCommand":"",
+        "trigger":{
+            "timer":{
+                "updateInterval":"1440"
+            },
+            "messager":{
+                "msgID":""
+            }
+        },
+        "time":{
+            "trim":{
+                "mode":"MINUTE",
+                "minute":"1440"
+            },
+            "delay":"45",
+            "timeslot":"1440"
+        }
+    },
+    "dest":[
+	    {
+            "type":"mysql",
+            "datasource":"mysql1",
+            "actions":[
+                {
+                    "sqlCommand":"INSERT INTO q_report_flow_useronline_d VALUES (?,?,?)",
+                    "columns":[
+          			        "R_STATTIME",
+                            "R_ONLINECOUNT",
+                            "R_ACTIVECOUNT"
+                    ]
+                }
+            ]
+        },
+        {
+            "type":"sqlserver",
+            "datasource":"sqlserver0",
+            "actions":[
+                {
+                    "sqlCommand":"INSERT INTO q_report_flow_useronline_d VALUES (?,?,?)",
+                    "columns":[
+                            "R_STATTIME",
+                            "R_ONLINECOUNT",
+                            "R_ACTIVECOUNT"
+                    ]
+                }
+            ]
+        },
+        {
+            "type":"FileSystem",
+            "actions":[
+                {
+                    "datasource":"fileSys2",
+                    "filename":"网调_19_q_report_flow_useronline_d-%startTime:yyyyMMdd%_%endTime:yyyyMMdd%.csv",
+                    "finishedFilename":"网调_19_q_report_flow_useronline_d-%startTime:yyyyMMdd%_%endTime:yyyyMMdd%",
+                    "compressor":""
+                }
+            ]
+        }
+    ]
+}
